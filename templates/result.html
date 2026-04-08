@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Credit risk assessment result showing loan default probability and AI confidence score." />
+  <title>CreditSense AI — Risk Result</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+<!-- ─── Animated Background ─────────────────────────────────────────────── -->
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<!-- ─── Navigation ─────────────────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="brand-icon">⬡</span>
+    <span class="brand-name">CreditSense <span class="brand-ai">AI</span></span>
+  </div>
+  <a href="/" class="nav-back-btn">← New Analysis</a>
+</nav>
+
+<!-- ─── Result Layout ───────────────────────────────────────────────────── -->
+<main class="result-layout">
+
+  <!-- Verdict Card -->
+  <div class="verdict-card glass {{ 'high-risk' if risk_level == 'high' else 'low-risk' }}" id="verdict-card">
+    <div class="verdict-icon-wrap">
+      <span class="verdict-icon">{{ '⚠️' if risk_level == 'high' else '✅' }}</span>
+    </div>
+    <h1 class="verdict-title">{{ result }}</h1>
+    <p class="verdict-desc">
+      {% if risk_level == 'high' %}
+        This applicant shows elevated default risk. Proceed with caution and conduct additional due diligence.
+      {% else %}
+        This applicant appears financially stable. Risk indicators are within acceptable thresholds.
+      {% endif %}
+    </p>
+
+    <!-- Probability Ring -->
+    <div class="prob-ring-container" title="Default probability: {{ prob_default }}%">
+      <svg class="prob-ring" viewBox="0 0 120 120" aria-label="Risk probability ring">
+        <circle class="ring-bg"    cx="60" cy="60" r="50" />
+        <circle class="ring-fill {{ 'ring-danger' if risk_level == 'high' else 'ring-safe' }}"
+                cx="60" cy="60" r="50"
+                stroke-dasharray="314"
+                stroke-dashoffset="{{ (1 - prob_default/100) * 314 }}"
+                id="risk-ring"
+        />
+      </svg>
+      <div class="ring-label">
+        <span class="ring-pct" id="ring-pct">0%</span>
+        <span class="ring-sub">Default Prob.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Two metric cards -->
+  <div class="metric-row">
+    <div class="metric-card glass">
+      <span class="metric-icon danger-icon">🔴</span>
+      <div class="metric-info">
+        <span class="metric-val">{{ prob_default }}%</span>
+        <span class="metric-label">Probability of Default</span>
+      </div>
+      <!-- Mini bar -->
+      <div class="mini-bar-track">
+        <div class="mini-bar danger-bar" style="width: {{ prob_default }}%"></div>
+      </div>
+    </div>
+
+    <div class="metric-card glass">
+      <span class="metric-icon safe-icon">🟢</span>
+      <div class="metric-info">
+        <span class="metric-val">{{ prob_safe }}%</span>
+        <span class="metric-label">Probability of Repayment</span>
+      </div>
+      <div class="mini-bar-track">
+        <div class="mini-bar safe-bar" style="width: {{ prob_safe }}%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature importance -->
+  <div class="features-card glass">
+    <h2 class="features-title">📊 Top Risk Factors</h2>
+    <p class="features-subtitle">Most influential features driving this prediction</p>
+    <div class="features-list">
+      {% for f in top_features %}
+      <div class="feature-row">
+        <span class="feature-name">{{ f.feature | replace("_", " ") | title }}</span>
+        <div class="feature-bar-track">
+          <div class="feature-bar"
+               style="width: {{ [f.importance * 200, 100] | min }}%"
+               data-val="{{ f.importance }}">
+          </div>
+        </div>
+        <span class="feature-coef">{{ f.importance }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="action-row">
+    <a href="/" class="action-btn primary-btn">
+      🔄 Analyse Another Applicant
+    </a>
+    <button onclick="window.print()" class="action-btn secondary-btn">
+      🖨️ Print Report
+    </button>
+  </div>
+
+</main>
+
+<!-- ─── Footer ──────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  Built with Flask &amp; scikit-learn · CreditSense AI © 2025
+</footer>
+
+<script>
+  // ── Animate probability ring on load ──────────────────────────────────────
+  const probDefault = {{ prob_default }};
+  const ringEl  = document.getElementById("risk-ring");
+  const pctEl   = document.getElementById("ring-pct");
+  const circumference = 314;
+
+  let current = 0;
+  const target = probDefault;
+  const duration = 1200;
+  const steps = 60;
+  const increment = target / steps;
+  const interval = duration / steps;
+
+  const timer = setInterval(() => {
+    current = Math.min(current + increment, target);
+    pctEl.textContent = Math.round(current) + "%";
+    ringEl.style.strokeDashoffset = circumference - (current / 100) * circumference;
+    if (current >= target) clearInterval(timer);
+  }, interval);
+
+  // ── Entrance animation ────────────────────────────────────────────────────
+  document.getElementById("verdict-card").classList.add("animate-in");
+</script>
+
+</body>
+</html>
